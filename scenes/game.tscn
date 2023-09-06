@@ -1,11 +1,16 @@
-[gd_scene load_steps=5 format=3 uid="uid://cruh8bbcfvyvr"]
+[gd_scene load_steps=8 format=3 uid="uid://cruh8bbcfvyvr"]
 
+[ext_resource type="Script" path="res://scenes/game.gd" id="1_54pt5"]
 [ext_resource type="Texture2D" uid="uid://brp4euwugc18f" path="res://assets/background.png" id="1_blg2x"]
 [ext_resource type="PackedScene" uid="uid://bt33j5dwxano3" path="res://scenes/top_ui.tscn" id="2_wrbvl"]
 [ext_resource type="Texture2D" uid="uid://cdunkljd6up72" path="res://assets/bottom_ui.png" id="3_jy0d4"]
 [ext_resource type="Script" path="res://scripts/grid.gd" id="4_4jr62"]
+[ext_resource type="Script" path="res://scripts/bottom_ui.gd" id="5_kdwr8"]
+[ext_resource type="FontFile" uid="uid://b25431rxog83j" path="res://assets/fonts/Kenney Blocks.ttf" id="5_quors"]
 
 [node name="Game" type="Node2D"]
+script = ExtResource("1_54pt5")
+timer_mode = true
 
 [node name="background" type="TextureRect" parent="."]
 offset_right = 576.0
@@ -19,6 +24,38 @@ offset_top = 928.0
 offset_right = 576.0
 offset_bottom = 1020.0
 texture = ExtResource("3_jy0d4")
+script = ExtResource("5_kdwr8")
+
+[node name="MarginContainer" type="MarginContainer" parent="bottom_ui"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 25
+theme_override_constants/margin_top = 15
+theme_override_constants/margin_right = 25
+theme_override_constants/margin_bottom = 15
+
+[node name="HBoxContainer" type="HBoxContainer" parent="bottom_ui/MarginContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_constants/separation = 200
+
+[node name="win_advice" type="Label" parent="bottom_ui/MarginContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_colors/font_color = Color(0.4375, 0.382813, 0.4375, 1)
+theme_override_fonts/font = ExtResource("5_quors")
+text = "You Win"
+
+[node name="Reset" type="Button" parent="bottom_ui/MarginContainer/HBoxContainer"]
+layout_mode = 2
+size_flags_horizontal = 0
+theme_override_colors/font_color = Color(0.484375, 0.84375, 0.917969, 1)
+theme_override_fonts/font = ExtResource("5_quors")
+text = "Reset Game"
 
 [node name="grid" type="Node2D" parent="."]
 script = ExtResource("4_4jr62")
@@ -41,6 +78,16 @@ one_shot = true
 wait_time = 0.5
 one_shot = true
 
+[connection signal="start_game" from="." to="top_ui" method="_on_game_start_game"]
+[connection signal="start_game" from="." to="grid" method="_on_game_start_game"]
+[connection signal="game_over" from="top_ui" to="grid" method="_on_top_ui_game_over"]
+[connection signal="you_lose" from="top_ui" to="bottom_ui" method="_on_top_ui_you_lose"]
+[connection signal="you_win" from="top_ui" to="bottom_ui" method="_on_top_ui_you_win"]
+[connection signal="button_down" from="bottom_ui/MarginContainer/HBoxContainer/Reset" to="top_ui" method="_on_reset_button_down"]
+[connection signal="button_down" from="bottom_ui/MarginContainer/HBoxContainer/Reset" to="bottom_ui" method="_on_reset_button_down"]
+[connection signal="button_down" from="bottom_ui/MarginContainer/HBoxContainer/Reset" to="grid" method="_on_reset_button_down"]
+[connection signal="rest_moves" from="grid" to="top_ui" method="_on_grid_rest_moves"]
+[connection signal="sum_points" from="grid" to="top_ui" method="_on_grid_sum_points"]
 [connection signal="timeout" from="destroy_timer" to="grid" method="_on_destroy_timer_timeout"]
 [connection signal="timeout" from="collapse_timer" to="grid" method="_on_collapse_timer_timeout"]
 [connection signal="timeout" from="refill_timer" to="grid" method="_on_refill_timer_timeout"]
