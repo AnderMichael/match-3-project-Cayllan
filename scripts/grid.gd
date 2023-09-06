@@ -3,7 +3,7 @@ extends Node2D
 # state machine
 enum {WAIT, MOVE}
 var state
-
+var game_mode: String
 # grid
 @export var width: int
 @export var height: int
@@ -35,12 +35,16 @@ var move_checked = false
 var first_touch = Vector2.ZERO
 var final_touch = Vector2.ZERO
 var is_controlling = false
+var at_least: bool = false
 
 # scoring variables and signals
-
+signal sum_points
+@export var piece_value :int = 50
+var streak : int = 1
 
 # counter variables and signals
-
+signal rest_moves
+var moves : bool = true
 
 # Called when the node enters the scene tree for the first time.
 func _ready():
@@ -96,7 +100,7 @@ func match_at(i, j, color):
 			if all_pieces[i - 1][j].color == color and all_pieces[i - 2][j].color == color:
 				return true
 	# check down
-	if j> 1:
+	if j > 1:
 		if all_pieces[i][j - 1] != null and all_pieces[i][j - 2] != null:
 			if all_pieces[i][j - 1].color == color and all_pieces[i][j - 2].color == color:
 				return true
@@ -130,6 +134,11 @@ func swap_pieces(column, row, direction: Vector2):
 	other_piece.move(grid_to_pixel(column, row))
 	if not move_checked:
 		find_matches()
+	
+	
+	if(at_least and game_mode != "timer_mode"):
+		emit_signal('rest_moves')
+		at_least = false
 
 func store_info(first_piece, other_piece, place, direction):
 	piece_one = first_piece
@@ -162,6 +171,7 @@ func _process(delta):
 		touch_input()
 
 func find_matches():
+	# Asumimos que no hay matches al hacer un movimiento
 	for i in width:
 		for j in height:
 			if all_pieces[i][j] != null:
@@ -180,6 +190,7 @@ func find_matches():
 					all_pieces[i][j].dim()
 					all_pieces[i + 1][j].matched = true
 					all_pieces[i + 1][j].dim()
+					at_least = true
 				# detect vertical matches
 				if (
 					j > 0 and j < height -1 
@@ -194,7 +205,9 @@ func find_matches():
 					all_pieces[i][j].dim()
 					all_pieces[i][j + 1].matched = true
 					all_pieces[i][j + 1].dim()
-					
+					at_least = true
+	
+
 	get_parent().get_node("destroy_timer").start()
 	
 func destroy_matched():
@@ -205,7 +218,7 @@ func destroy_matched():
 				was_matched = true
 				all_pieces[i][j].queue_free()
 				all_pieces[i][j] = null
-				
+				emit_signal("sum_points", piece_value * streak)
 	move_checked = true
 	if was_matched:
 		get_parent().get_node("collapse_timer").start()
@@ -216,7 +229,7 @@ func collapse_columns():
 	for i in width:
 		for j in height:
 			if all_pieces[i][j] == null:
-				print(i, j)
+				# print(i, j)
 				# look above
 				for k in range(j + 1, height):
 					if all_pieces[i][k] != null:
@@ -227,7 +240,7 @@ func collapse_columns():
 	get_parent().get_node("refill_timer").start()
 
 func refill_columns():
-	
+	streak += 1
 	for i in width:
 		for j in height:
 			if all_pieces[i][j] == null:
@@ -257,21 +270,30 @@ func check_after_refill():
 				find_matches()
 				get_parent().get_node("destroy_timer").start()
 				return
-	state = MOVE
-	
+	state = MOVE if(moves) else WAIT
+	streak = 1
 	move_checked = false
 
 func _on_destroy_timer_timeout():
-	print("destroy")
+	# print("destroy")
 	destroy_matched()
 
 func _on_collapse_timer_timeout():
-	print("collapse")
+	# print("collapse")
 	collapse_columns()
 
 func _on_refill_timer_timeout():
 	refill_columns()
 	
 func game_over():
-	state = WAIT
-	print("game over")
+	moves = false
+
+func _on_game_start_game(game_mode_selected):
+	game_mode = game_mode_selected
+	state = MOVE
+
+func _on_top_ui_game_over():
+	game_over()
+
+func _on_reset_button_down():
+	get_tree().reload_current_scene()
